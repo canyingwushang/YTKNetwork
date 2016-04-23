@@ -248,7 +248,7 @@
     }
     id validator = [request jsonValidator];
     if (validator != nil) {
-        id json = [request responseJSONObject];
+        id json = [request responseObject];
         result = [YTKNetworkPrivate checkJson:json withValidator:validator];
     }
     return result;
@@ -261,6 +261,7 @@
     if (request) {
         BOOL succeed = [self checkResult:request];
         if (succeed) {
+            request.responseObject = responseObject;
             [request toggleAccessoriesWillStopCallBack];
             [request requestCompleteFilter];
             if (request.delegate != nil) {
@@ -273,13 +274,14 @@
         } else {
             YTKLog(@"Request %@ failed, status code = %ld",
                      NSStringFromClass([request class]), (long)request.responseStatusCode);
+            request.responseObject = nil;
             [request toggleAccessoriesWillStopCallBack];
             [request requestFailedFilter];
             if (request.delegate != nil) {
-                [request.delegate requestFailed:request];
+                [request.delegate requestFailed:request Error:task.error];
             }
             if (request.failureCompletionBlock) {
-                request.failureCompletionBlock(request, responseObject);
+                request.failureCompletionBlock(request, task.error);
             }
             [request toggleAccessoriesDidStopCallBack];
         }

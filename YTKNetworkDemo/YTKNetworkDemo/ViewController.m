@@ -72,15 +72,17 @@
         NSLog(@"json = %@", json);
         // show cached data
     }
-    [api startWithCompletionBlockWithSuccess:^(YTKBaseRequest *request) {
+    [api startWithCompletionBlockWithSuccess:^(YTKBaseRequest *request, id responseObject) {
         NSLog(@"update ui");
-    } failure:^(YTKBaseRequest *request) {
+    } failure:^(YTKBaseRequest *request, NSError *error) {
         NSLog(@"failed");
     }];
 }
 
 - (void)viewDidLoad {
     [super viewDidLoad];
+    
+    [self loadCacheData];
 }
 
 - (void)didReceiveMemoryWarning {

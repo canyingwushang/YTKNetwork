@@ -125,14 +125,14 @@
     return (self.requestTask.state == NSURLSessionTaskStateRunning);
 }
 
-- (void)startWithCompletionBlockWithSuccess:(YTKRequestCompletionBlock)success
-                                    failure:(YTKRequestCompletionBlock)failure {
+- (void)startWithCompletionBlockWithSuccess:(YTKRequestSuccessBlock)success
+                                    failure:(YTKRequestFailureBlock)failure {
     [self setCompletionBlockWithSuccess:success failure:failure];
     [self start];
 }
 
-- (void)setCompletionBlockWithSuccess:(YTKRequestCompletionBlock)success
-                              failure:(YTKRequestCompletionBlock)failure {
+- (void)setCompletionBlockWithSuccess:(YTKRequestSuccessBlock)success
+                              failure:(YTKRequestFailureBlock)failure {
     self.successCompletionBlock = success;
     self.failureCompletionBlock = failure;
 }
@@ -145,10 +145,6 @@
 
 - (NSUInteger)taskIdentifier {
     return self.requestTask.taskIdentifier;
-}
-
-- (id)responseJSONObject {
-    return self.requestTask.response;
 }
 
 - (NSInteger)responseStatusCode {

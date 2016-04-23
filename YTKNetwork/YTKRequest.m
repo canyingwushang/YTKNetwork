@@ -182,9 +182,9 @@
     _dataFromCache = YES;
     [self requestCompleteFilter];
     YTKRequest *strongSelf = self;
-    [strongSelf.delegate requestFinished:strongSelf];
+    [strongSelf.delegate requestFinished:strongSelf responseObject:strongSelf.responseObject];
     if (strongSelf.successCompletionBlock) {
-        strongSelf.successCompletionBlock(strongSelf);
+        strongSelf.successCompletionBlock(strongSelf, strongSelf.responseObject);
     }
     [strongSelf clearCompletionBlock];
 }
@@ -220,11 +220,11 @@
     }
 }
 
-- (id)responseJSONObject {
+- (id)responseObject {
     if (_cacheJson) {
         return _cacheJson;
     } else {
-        return [super responseJSONObject];
+        return [super responseObject];
     }
 }
 
@@ -232,7 +232,7 @@
 
 - (void)requestCompleteFilter {
     [super requestCompleteFilter];
-    [self saveJsonResponseToCacheFile:[super responseJSONObject]];
+    [self saveJsonResponseToCacheFile:[super responseObject]];
 }
 
 // 手动将其他请求的JsonResponse写入该请求的缓存

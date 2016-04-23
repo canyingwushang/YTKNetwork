@@ -43,7 +43,7 @@
 }
 
 - (NSString *)responseImageId {
-    NSDictionary *dict = self.responseJSONObject;
+    NSDictionary *dict = self.responseObject;
     return dict[@"imageId"];
 }
 

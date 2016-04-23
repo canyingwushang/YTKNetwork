@@ -46,7 +46,7 @@
 }
 
 - (NSString *)userId {
-    return [[[self responseJSONObject] objectForKey:@"userId"] stringValue];
+    return [[[self responseObject] objectForKey:@"userId"] stringValue];
 }
 
 @end
