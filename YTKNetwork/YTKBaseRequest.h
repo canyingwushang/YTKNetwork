@@ -22,8 +22,7 @@
 //  THE SOFTWARE.
 
 #import <Foundation/Foundation.h>
-#import "AFNetworking.h"
-#import "AFDownloadRequestOperation.h"
+#import <AFNetworking/AFNetworking.h>
 
 typedef NS_ENUM(NSInteger , YTKRequestMethod) {
     YTKRequestMethodGet = 0,
@@ -46,17 +45,17 @@ typedef NS_ENUM(NSInteger , YTKRequestPriority) {
 };
 
 typedef void (^AFConstructingBlock)(id<AFMultipartFormData> formData);
-typedef void (^AFDownloadProgressBlock)(AFDownloadRequestOperation *operation, NSInteger bytesRead, long long totalBytesRead, long long totalBytesExpected, long long totalBytesReadForFile, long long totalBytesExpectedToReadForFile);
+typedef void (^AFDownloadProgressBlock)(NSURLSessionDataTask *task, NSProgress *progress);
 
 @class YTKBaseRequest;
 
-typedef void(^YTKRequestCompletionBlock)(__kindof YTKBaseRequest *request);
+typedef void(^YTKRequestCompletionBlock)(__kindof YTKBaseRequest *request, id responseObject);
 
 @protocol YTKRequestDelegate <NSObject>
 
 @optional
 
-- (void)requestFinished:(YTKBaseRequest *)request;
+- (void)requestFinished:(YTKBaseRequest *)request responseObject:(id)responseObject;
 - (void)requestFailed:(YTKBaseRequest *)request;
 - (void)clearRequest;
 
@@ -75,21 +74,17 @@ typedef void(^YTKRequestCompletionBlock)(__kindof YTKBaseRequest *request);
 @interface YTKBaseRequest : NSObject
 
 /// Tag
-@property (nonatomic) NSInteger tag;
+@property (nonatomic, readonly) NSUInteger taskIdentifier;
 
 /// User info
 @property (nonatomic, strong) NSDictionary *userInfo;
 
-@property (nonatomic, strong) AFHTTPRequestOperation *requestOperation;
+@property (nonatomic, strong) NSURLSessionTask *requestTask;
 
 /// request delegate object
 @property (nonatomic, weak) id<YTKRequestDelegate> delegate;
 
 @property (nonatomic, strong, readonly) NSDictionary *responseHeaders;
-
-@property (nonatomic, strong, readonly) NSData *responseData;
-
-@property (nonatomic, strong, readonly) NSString *responseString;
 
 @property (nonatomic, strong, readonly) id responseJSONObject;
 

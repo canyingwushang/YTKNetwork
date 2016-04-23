@@ -24,10 +24,11 @@
 #import "YTKNetworkAgent.h"
 #import "YTKNetworkConfig.h"
 #import "YTKNetworkPrivate.h"
-#import "AFDownloadRequestOperation.h"
+//#import "AFDownloadRequestOperation.h"
 
 @implementation YTKNetworkAgent {
-    AFHTTPRequestOperationManager *_manager;
+    AFHTTPSessionManager *_manager;
+    //AFHTTPRequestOperationManager *_manager;
     YTKNetworkConfig *_config;
     NSMutableDictionary *_requestsRecord;
 }
@@ -45,7 +46,7 @@
     self = [super init];
     if (self) {
         _config = [YTKNetworkConfig sharedInstance];
-        _manager = [AFHTTPRequestOperationManager manager];
+        _manager = [AFHTTPSessionManager manager];
         _requestsRecord = [NSMutableDictionary dictionary];
         _manager.operationQueue.maxConcurrentOperationCount = 4;
         _manager.securityPolicy = _config.securityPolicy;
@@ -118,77 +119,88 @@
     // if api build custom url request
     NSURLRequest *customUrlRequest= [request buildCustomUrlRequest];
     if (customUrlRequest) {
-        AFHTTPRequestOperation *operation = [[AFHTTPRequestOperation alloc] initWithRequest:customUrlRequest];
-        [operation setCompletionBlockWithSuccess:^(AFHTTPRequestOperation *operation, id responseObject) {
-            [self handleRequestResult:operation];
-        } failure:^(AFHTTPRequestOperation *operation, NSError *error) {
-            [self handleRequestResult:operation];
+        
+        NSURLSessionDataTask *customTask = [_manager dataTaskWithRequest:customUrlRequest completionHandler:^(NSURLResponse * _Nonnull response, id  _Nullable responseObject, NSError * _Nullable error) {
+            if (error) {
+                [self handleRequestResult:customTask responseObject:responseObject];
+            }
+            else {
+                [self handleRequestResult:customTask responseObject:nil];
+            }
         }];
-        request.requestOperation = operation;
-        operation.responseSerializer = _manager.responseSerializer;
-        [_manager.operationQueue addOperation:operation];
+        request.requestTask = customTask;
+        [customTask resume];
     } else {
         if (method == YTKRequestMethodGet) {
             if (request.resumableDownloadPath) {
-                // add parameters to URL;
-                NSString *filteredUrl = [YTKNetworkPrivate urlStringWithOriginUrlString:url appendParameters:param];
-
-                NSURLRequest *requestUrl = [NSURLRequest requestWithURL:[NSURL URLWithString:filteredUrl]];
-                AFDownloadRequestOperation *operation = [[AFDownloadRequestOperation alloc] initWithRequest:requestUrl
-                                                                                                 targetPath:request.resumableDownloadPath shouldResume:YES];
-                [operation setProgressiveDownloadProgressBlock:request.resumableDownloadProgressBlock];
-                [operation setCompletionBlockWithSuccess:^(AFHTTPRequestOperation *operation, id responseObject) {
-                    [self handleRequestResult:operation];
-                }                                failure:^(AFHTTPRequestOperation *operation, NSError *error) {
-                    [self handleRequestResult:operation];
+                
+                request.requestTask = [_manager GET:url parameters:param progress:^(NSProgress * _Nonnull downloadProgress) {
+                    
+                } success:^(NSURLSessionDataTask * _Nonnull task, id  _Nullable responseObject) {
+                    [self handleRequestResult:task responseObject:responseObject];
+                } failure:^(NSURLSessionDataTask * _Nullable task, NSError * _Nonnull error) {
+                    [self handleRequestResult:task responseObject:nil];
                 }];
-                request.requestOperation = operation;
-                [_manager.operationQueue addOperation:operation];
+                
+//                
+//                AFDownloadRequestOperation *operation = [[AFDownloadRequestOperation alloc] initWithRequest:requestUrl
+//                                                                                                 targetPath:request.resumableDownloadPath shouldResume:YES];
+//                [operation setProgressiveDownloadProgressBlock:request.resumableDownloadProgressBlock];
+//                [operation setCompletionBlockWithSuccess:^(AFHTTPRequestOperation *operation, id responseObject) {
+//                    [self handleRequestResult:operation];
+//                }                                failure:^(AFHTTPRequestOperation *operation, NSError *error) {
+//                    [self handleRequestResult:operation];
+//                }];
+//                request.requestOperation = operation;
+//                [_manager.operationQueue addOperation:operation];
             } else {
-                request.requestOperation = [_manager GET:url parameters:param success:^(AFHTTPRequestOperation *operation, id responseObject) {
-                    [self handleRequestResult:operation];
-                }                                failure:^(AFHTTPRequestOperation *operation, NSError *error) {
-                    [self handleRequestResult:operation];
+                request.requestTask = [_manager GET:url parameters:param progress:nil success:^(NSURLSessionDataTask * _Nonnull task, id  _Nullable responseObject) {
+                    [self handleRequestResult:task responseObject:responseObject];
+                } failure:^(NSURLSessionDataTask * _Nullable task, NSError * _Nonnull error) {
+                    [self handleRequestResult:task responseObject:nil];
                 }];
             }
         } else if (method == YTKRequestMethodPost) {
             if (constructingBlock != nil) {
-                request.requestOperation = [_manager POST:url parameters:param constructingBodyWithBlock:constructingBlock
-                                                  success:^(AFHTTPRequestOperation *operation, id responseObject) {
-                                                      [self handleRequestResult:operation];
-                                                  } failure:^(AFHTTPRequestOperation *operation, NSError *error) {
-                            [self handleRequestResult:operation];
-                        }];
+                request.requestTask = [_manager POST:url parameters:param constructingBodyWithBlock:constructingBlock progress:^(NSProgress * _Nonnull uploadProgress) {
+                    ;
+                } success:^(NSURLSessionDataTask * _Nonnull task, id  _Nullable responseObject) {
+                    [self handleRequestResult:task responseObject:responseObject];
+                } failure:^(NSURLSessionDataTask * _Nullable task, NSError * _Nonnull error) {
+                    [self handleRequestResult:task responseObject:nil];
+                }];
             } else {
-                request.requestOperation = [_manager POST:url parameters:param success:^(AFHTTPRequestOperation *operation, id responseObject) {
-                    [self handleRequestResult:operation];
-                }                                 failure:^(AFHTTPRequestOperation *operation, NSError *error) {
-                    [self handleRequestResult:operation];
+                request.requestTask = [_manager POST:url parameters:param progress:^(NSProgress * _Nonnull uploadProgress) {
+                    ;
+                } success:^(NSURLSessionDataTask * _Nonnull task, id  _Nullable responseObject) {
+                    [self handleRequestResult:task responseObject:responseObject];
+                } failure:^(NSURLSessionDataTask * _Nullable task, NSError * _Nonnull error) {
+                    [self handleRequestResult:task responseObject:nil];
                 }];
             }
         } else if (method == YTKRequestMethodHead) {
-            request.requestOperation = [_manager HEAD:url parameters:param success:^(AFHTTPRequestOperation *operation) {
-                [self handleRequestResult:operation];
-            }                                 failure:^(AFHTTPRequestOperation *operation, NSError *error) {
-                [self handleRequestResult:operation];
+            request.requestTask = [_manager HEAD:url parameters:param success:^(NSURLSessionDataTask * _Nonnull task) {
+                [self handleRequestResult:task responseObject:nil];
+            } failure:^(NSURLSessionDataTask * _Nullable task, NSError * _Nonnull error) {
+                [self handleRequestResult:task responseObject:nil];
             }];
         } else if (method == YTKRequestMethodPut) {
-            request.requestOperation = [_manager PUT:url parameters:param success:^(AFHTTPRequestOperation *operation, id responseObject) {
-                [self handleRequestResult:operation];
-            }                                failure:^(AFHTTPRequestOperation *operation, NSError *error) {
-                [self handleRequestResult:operation];
+            request.requestTask = [_manager PUT:url parameters:param success:^(NSURLSessionDataTask * _Nonnull task, id  _Nullable responseObject) {
+                [self handleRequestResult:task responseObject:responseObject];
+            } failure:^(NSURLSessionDataTask * _Nullable task, NSError * _Nonnull error) {
+                [self handleRequestResult:task responseObject:nil];
             }];
         } else if (method == YTKRequestMethodDelete) {
-            request.requestOperation = [_manager DELETE:url parameters:param success:^(AFHTTPRequestOperation *operation, id responseObject) {
-                [self handleRequestResult:operation];
-            }                                   failure:^(AFHTTPRequestOperation *operation, NSError *error) {
-                [self handleRequestResult:operation];
+            request.requestTask = [_manager DELETE:url parameters:param success:^(NSURLSessionDataTask * _Nonnull task, id  _Nullable responseObject) {
+                [self handleRequestResult:task responseObject:responseObject];
+            } failure:^(NSURLSessionDataTask * _Nullable task, NSError * _Nonnull error) {
+                [self handleRequestResult:task responseObject:nil];
             }];
         } else if (method == YTKRequestMethodPatch) {
-            request.requestOperation = [_manager PATCH:url parameters:param success:^(AFHTTPRequestOperation *operation, id responseObject) {
-                [self handleRequestResult:operation];
-            } failure:^(AFHTTPRequestOperation *operation, NSError *error) {
-                [self handleRequestResult:operation];
+            request.requestTask = [_manager PATCH:url parameters:param success:^(NSURLSessionDataTask * _Nonnull task, id  _Nullable responseObject) {
+                [self handleRequestResult:task responseObject:responseObject];
+            } failure:^(NSURLSessionDataTask * _Nullable task, NSError * _Nonnull error) {
+                [self handleRequestResult:task responseObject:nil];
             }];
         } else {
             YTKLog(@"Error, unsupport method type");
@@ -199,14 +211,14 @@
     // Set request operation priority
     switch (request.requestPriority) {
         case YTKRequestPriorityHigh:
-            request.requestOperation.queuePriority = NSOperationQueuePriorityHigh;
+            request.requestTask.priority = NSURLSessionTaskPriorityHigh;
             break;
         case YTKRequestPriorityLow:
-            request.requestOperation.queuePriority = NSOperationQueuePriorityLow;
+            request.requestTask.priority = NSURLSessionTaskPriorityLow;
             break;
         case YTKRequestPriorityDefault:
         default:
-            request.requestOperation.queuePriority = NSOperationQueuePriorityNormal;
+            request.requestTask.priority = NSURLSessionTaskPriorityDefault;
             break;
     }
 
@@ -216,8 +228,8 @@
 }
 
 - (void)cancelRequest:(YTKBaseRequest *)request {
-    [request.requestOperation cancel];
-    [self removeOperation:request.requestOperation];
+    [request.requestTask cancel];
+    [self removeOperation:request.requestTask];
     [request clearCompletionBlock];
 }
 
@@ -242,8 +254,8 @@
     return result;
 }
 
-- (void)handleRequestResult:(AFHTTPRequestOperation *)operation {
-    NSString *key = [self requestHashKey:operation];
+- (void)handleRequestResult:(NSURLSessionTask *)task responseObject:(id)responseObject {
+    NSString *key = [self requestHashKey:task];
     YTKBaseRequest *request = _requestsRecord[key];
     YTKLog(@"Finished Request: %@", NSStringFromClass([request class]));
     if (request) {
@@ -252,10 +264,10 @@
             [request toggleAccessoriesWillStopCallBack];
             [request requestCompleteFilter];
             if (request.delegate != nil) {
-                [request.delegate requestFinished:request];
+                [request.delegate requestFinished:request responseObject:responseObject];
             }
             if (request.successCompletionBlock) {
-                request.successCompletionBlock(request);
+                request.successCompletionBlock(request, responseObject);
             }
             [request toggleAccessoriesDidStopCallBack];
         } else {
@@ -267,31 +279,31 @@
                 [request.delegate requestFailed:request];
             }
             if (request.failureCompletionBlock) {
-                request.failureCompletionBlock(request);
+                request.failureCompletionBlock(request, responseObject);
             }
             [request toggleAccessoriesDidStopCallBack];
         }
     }
-    [self removeOperation:operation];
+    [self removeOperation:task];
     [request clearCompletionBlock];
 }
 
-- (NSString *)requestHashKey:(AFHTTPRequestOperation *)operation {
-    NSString *key = [NSString stringWithFormat:@"%lu", (unsigned long)[operation hash]];
+- (NSString *)requestHashKey:(NSURLSessionTask *)task {
+    NSString *key = [NSString stringWithFormat:@"%lu", (unsigned long)[task hash]];
     return key;
 }
 
 - (void)addOperation:(YTKBaseRequest *)request {
-    if (request.requestOperation != nil) {
-        NSString *key = [self requestHashKey:request.requestOperation];
+    if (request.requestTask != nil) {
+        NSString *key = [self requestHashKey:request.requestTask];
         @synchronized(self) {
             _requestsRecord[key] = request;
         }
     }
 }
 
-- (void)removeOperation:(AFHTTPRequestOperation *)operation {
-    NSString *key = [self requestHashKey:operation];
+- (void)removeOperation:(NSURLSessionTask *)task {
+    NSString *key = [self requestHashKey:task];
     @synchronized(self) {
         [_requestsRecord removeObjectForKey:key];
     }

@@ -122,7 +122,7 @@
 }
 
 - (BOOL)isExecuting {
-    return self.requestOperation.isExecuting;
+    return (self.requestTask.state == NSURLSessionTaskStateRunning);
 }
 
 - (void)startWithCompletionBlockWithSuccess:(YTKRequestCompletionBlock)success
@@ -143,24 +143,30 @@
     self.failureCompletionBlock = nil;
 }
 
+- (NSUInteger)taskIdentifier {
+    return self.requestTask.taskIdentifier;
+}
+
 - (id)responseJSONObject {
-    return self.requestOperation.responseObject;
-}
-
-- (NSData *)responseData {
-    return self.requestOperation.responseData;
-}
-
-- (NSString *)responseString {
-    return self.requestOperation.responseString;
+    return self.requestTask.response;
 }
 
 - (NSInteger)responseStatusCode {
-    return self.requestOperation.response.statusCode;
+    NSHTTPURLResponse *response = (NSHTTPURLResponse *)self.requestTask.response;
+    if ([response isKindOfClass:[NSHTTPURLResponse class]])
+    {
+        return response.statusCode;
+    }
+    return -1;
 }
 
 - (NSDictionary *)responseHeaders {
-    return self.requestOperation.response.allHeaderFields;
+    NSHTTPURLResponse *response = (NSHTTPURLResponse *)self.requestTask.response;
+    if ([response isKindOfClass:[NSHTTPURLResponse class]])
+    {
+        return response.allHeaderFields;
+    }
+    return  nil;
 }
 
 #pragma mark - Request Accessoies
